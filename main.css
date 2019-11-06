@@ -1,0 +1,26 @@
+body {
+    margin: 0;
+}
+
+.sudoku-wrapper {
+    display: grid;
+    grid: repeat(9, 1fr) / repeat(9, 1fr);
+    width: 500px;
+    height: 500px;
+    margin: auto;
+    margin-top: 2rem;
+    border: 1px solid black;
+}
+
+.cell {
+    border: 1px solid lightgray;
+}
+
+.cell:nth-of-type(3n+3) {
+    border-right: 1px solid black;
+}
+
+.cell:nth-child(n+19):nth-child(-n+27), 
+.cell:nth-child(n+46):nth-child(-n+54){
+    border-bottom: 1px solid black;
+}
