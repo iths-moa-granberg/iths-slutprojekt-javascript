@@ -45,7 +45,8 @@ class Board {
     }
 
     clearRow(row, number, skipCellIndex){ //row = array, number = värdet som ska tas bort, skipCellIndex = i som ej ska tas bort
-        this.cellList[row] 
+        this.cellList[row]
+        
         for (let i in this.cellList[row]) {
             
         }
