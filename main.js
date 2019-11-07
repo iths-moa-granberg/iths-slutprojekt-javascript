@@ -2,7 +2,7 @@ class Cell {
     constructor() {
         this.value = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     }
-    
+
     markup() {
         const sudokuWrapper = document.querySelector('.sudoku-wrapper');
         const newCell = document.createElement('div');
@@ -15,7 +15,11 @@ class Cell {
 
     setRandomValue() {
         let num = this.value.sort(function () { return .5 - Math.random() })[0];
-        this.value = [num];
+        if (num) {
+            this.value = [num];
+        } else {
+            this.value = [];
+        }
     }
 
     eliminate(number) {
@@ -27,7 +31,7 @@ class Board {
     constructor() {
         this.cellList = [];
         this.generateCells();
-        this.setCellValue();
+        this.setCellsValue();
     }
 
     generateCells() { //this.cellList[radIndex][columnIndex]
@@ -40,14 +44,14 @@ class Board {
         }
     }
 
-    setCellValue() {
+    setCellsValue() {
         for (let row in this.cellList) {
             for (let col in this.cellList[row]) {
                 let cell = this.cellList[row][col];
                 cell.setRandomValue();
                 this.clearRow(row, cell.value, col);
                 this.clearColumn(col, cell.value, row);
-                this.clearBox(row, col, cell.value);  
+                this.clearBox(row, col, cell.value);
             }
         }
     }
@@ -80,35 +84,71 @@ class Board {
         }
     }
 
-    render() { 
+    render() {
         for (let row in this.cellList) {
             for (let col in this.cellList[row]) {
                 this.cellList[row][col].markup();
             }
         }
     }
+
+    clearValues(difflevel) {
+        let clearedList = this.cellList.flat(); //lista att klipppa ut celler från
+        let cellsToBeCleared = []; //lista med celler vars värde ska tas bort
+
+        for (let i = 0; i < difflevel; i++) {
+            let cell = clearedList.splice(Math.floor(Math.random() * clearedList.length), 1);
+            cellsToBeCleared.push(cell[0]);
+        }
+
+        for (let cell of this.cellList.flat()) {
+            for (let removeCell of cellsToBeCleared) {
+                if (cell == removeCell) {
+                    cell.value = '';
+                }
+            }
+        }
+    }
 }
 
-function generateSudoku() {
+function generateSudoku(difflevel) {
     let board = new Board();
     let reloads = 0;
 
-    while (board.cellList.flat().some(cell => !cell.value[0])) {
+    while (board.cellList.flat().some(cell => !cell.value.length)) {
         let divs = document.querySelectorAll('div');
         divs.forEach(div => div.remove());
         board = new Board();
         reloads++;
     }
-
+    board.clearValues(difflevel);
     board.render();
-    console.log(reloads);   
+
+    console.log(reloads);
 }
 
-generateSudoku();
+function initGeneratorBtns() {
+    const btnList = document.querySelectorAll('.generate-btn');
+    const easy = 81 - 62;
+    const medium = 81 - 53;
+    const hard = 81 - 44;
+    const veryHard = 81 - 35;
+    const insane = 81 - 26;
+    let levels = [easy, medium, hard, veryHard, insane];
 
+    for (let i = 0; i < btnList.length; i++) {
+        btnList[i].addEventListener('click', (event) => {
+            generateSudoku(levels[i]);
+            activeLevel = levels[i];
+            btnList.forEach(btn => btn.style.backgroundColor = 'white');
+            btnList[i].style.backgroundColor = 'lightgrey';
+        })
+    }
 
+    const refreshBtn = document.querySelector('.refresh-btn');
+    refreshBtn.addEventListener('click', (event) => generateSudoku(activeLevel));
 
-//Solve Sudoku:
-// function findCellRow(cell) { //findCellColumn()(%??), findCellBox()(kombo)
-//     return Math.floor(cell/9);
-// }
+    generateSudoku(easy);
+}
+
+initGeneratorBtns();

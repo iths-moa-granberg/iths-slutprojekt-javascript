@@ -2,13 +2,36 @@ body {
     margin: 0;
 }
 
+
+.generate-btns-wrapper {
+    width: 500px;
+    margin: 2rem auto 1rem auto;
+}
+
+.generate-btns-wrapper > button {
+    height: 2rem;
+    border: none;
+}
+
+.generate-btns-wrapper > button:hover {
+    background-color: lightgray;
+}
+
+.refresh-btn {
+    margin-left: 10rem;
+}
+
+button:focus {
+    outline: none;
+}
+
+
 .sudoku-wrapper {
     display: grid;
     grid: repeat(9, 1fr) / repeat(9, 1fr);
     width: 500px;
     height: 500px;
     margin: auto;
-    margin-top: 2rem;
     border: 1px solid black;
 }
 
