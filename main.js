@@ -94,20 +94,18 @@ class Board {
         }
     }
 
-    clearValues(difflevel) { //uppdatera så det bara sudokus med en möjlig lösning godkänns
-        let clearedList = this.cellList.flat(); //lista att klipppa ut celler från
-        let cellsToBeCleared = []; //lista med celler vars värde ska tas bort
-
+    clearValues(difflevel) { //uppdatera så att bara sudokus med en möjlig lösning godkänns
+        let clearedList = this.cellList.flat();
         for (let i = 0; i < difflevel; i++) {
-            let cell = clearedList.splice(Math.floor(Math.random() * clearedList.length), 1);
-            cellsToBeCleared.push(cell[0]);
-        }
+            let cell = clearedList.splice(Math.floor(Math.random() * clearedList.length), 1)[0];
+            let possibleValue = cell.value[0];
+            cell.value = '';
+            const solver = new Solve()
+            console.log(this);
 
-        for (let cell of this.cellList.flat()) {
-            for (let removeCell of cellsToBeCleared) {
-                if (cell == removeCell) {
-                    cell.value = '';
-                }
+            if (!solver.solveable(this.cellList)) {
+                cell.value = possibleValue;
+                i--;
             }
         }
     }
@@ -143,10 +141,14 @@ class SolveCell {
 }
 
 class Solve {
-    constructor() {
+    constructor(list=false) {
         this.sudokuWrapper = document.querySelector('.sudoku-wrapper');
         this.nodeValueList = this.sudokuWrapper.querySelectorAll('p');
-        this.cellList = [];
+        if (list) {
+            this.cellList = list;
+        } else {
+            this.cellList = [];
+        }
     }
 
     loadCells() {
@@ -168,7 +170,7 @@ class Solve {
         }
     }
 
-    render() {
+    render() { //skriv ut alla celler med 1 värde
         let x = 0;
         for (let row in this.cellList) {
             for (let col in this.cellList) {
@@ -180,51 +182,91 @@ class Solve {
         }
     }
 
-    checkForFinishedValues() {
+    solve() {
         for (let row in this.cellList) {
             for (let col in this.cellList) {
-                if (this.cellList[row][col].value.length == 1) {
+                let cell = this.cellList[row][col];
+                if (cell.value.length == 1) {
                     this.render();
-                    this.updatePossibleValue();
+                    this.clearImpossibleValues();
+                } else {
+                    this.crosscheck(cell, this.getRow(row));
+                    this.crosscheck(cell, this.getColumn(col));
+                    this.crosscheck(cell, this.getBox(row, col));
                 }
             }
         }
     }
 
-    updatePossibleValue() {
+    clearImpossibleValues() {
         for (let row in this.cellList) {
             for (let col in this.cellList[row]) {
                 let cell = this.cellList[row][col];
-                this.clearRow(row, cell.value, col);
-                this.clearColumn(col, cell.value, row);
-                this.clearBox(row, col, cell.value);
+                this.clear(cell, row, col);
             }
         }
     }
 
-    clearRow(row, number, skipCellIndex) {
-        for (let cellIndex in this.cellList[row]) {
-            if (cellIndex != skipCellIndex) {
-                this.cellList[row][cellIndex].eliminate(number);
+    clear(cell, rowIndex, colIndex) {
+        let list = this.getRow(rowIndex).concat(this.getColumn(colIndex).concat(this.getBox(rowIndex, colIndex)));
+
+        list.forEach(item => {
+            if (item != cell) {
+                item.eliminate(cell.value);
             }
-        }
+        });
     }
 
-    clearColumn(column, number, skipCellIndex) {
-        for (let rowIndex in this.cellList) {
-            if (rowIndex != skipCellIndex) {
-                this.cellList[rowIndex][column].eliminate(number);
-            }
-        }
+    getRow(rowIndex) {
+        return this.cellList[rowIndex];
     }
 
-    clearBox(skipRow, skipCol, number) {
-        let startRow = Math.floor(skipRow / 3) * 3;
-        let startCol = Math.floor(skipCol / 3) * 3;
-        for (let x = startRow; x < startRow + 3; x++) {
-            for (let y = startCol; y < startCol + 3; y++) {
-                if (y != skipCol && x != skipRow) {
-                    this.cellList[x][y].eliminate(number);
+    getColumn(colIndex) {
+        return this.cellList.map(row => row[colIndex]);
+    }
+
+    getBox(rowIndex, colIndex) {
+        let finalList = [];
+        let startRowIndex = Math.floor(rowIndex / 3) * 3;
+        let startColIndex = Math.floor(colIndex / 3) * 3;
+        let newList = this.cellList.filter((row, index) => index >= startRowIndex && index < startRowIndex + 3);
+        newList.forEach(row => {
+            let newRow = row.filter((cell, index) => index >= startColIndex && index < startColIndex + 3);
+            finalList.push(newRow);
+        });
+        return finalList.flat();
+    }
+
+    crosscheck(cell, list) {
+        let values = [];
+        list.forEach(item => {
+            if (item != cell) {
+                item.value.forEach(value => values.push(value));
+            }
+        });
+        cell.value.forEach(value => {
+            if (!values.includes(value)) {
+                cell.value = [value];
+            }
+        })
+    }
+
+    solved() {
+        let list = this.cellList.flat();
+        list.forEach(cell => {
+            if (cell.value.length != 1) {
+                this.solve();
+            }
+        });
+        return true;
+    }
+
+    solveable() {
+        this.solved();
+        for (let row of this.cellList) {
+            for (let cell of row) {
+                if (cell.value.length != 1) {
+                    return false;
                 }
             }
         }
@@ -265,7 +307,7 @@ function initSolveBtn() {
     solveBtn.addEventListener('click', (event) => {
         let solveSudoku = new Solve;
         solveSudoku.loadCells();
-        solveSudoku.checkForFinishedValues();
+        solveSudoku.solved();
     });
 }
 
