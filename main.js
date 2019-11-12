@@ -15,7 +15,7 @@ class Cell {
         newCellValue.innerText = this.value;
     }
 
-    setRandomValue() {
+    setRandomValue() { //if this.value.length
         let num = this.value.sort(function () { return .5 - Math.random() })[0];
         if (num) {
             this.value = [num];
@@ -98,16 +98,31 @@ class Board {
         let clearedList = this.cellList.flat();
         for (let i = 0; i < difflevel; i++) {
             let cell = clearedList.splice(Math.floor(Math.random() * clearedList.length), 1)[0];
-            let possibleValue = cell.value[0];
-            cell.value = '';
-            const solver = new Solve()
-            console.log(this);
+            let possibleValue = cell.value;
+            cell.value = [];
 
-            if (!solver.solveable(this.cellList)) {
+            const sudokuWrapper = document.querySelector('.sudoku-wrapper');
+            while (sudokuWrapper.firstChild) {
+                sudokuWrapper.removeChild(sudokuWrapper.firstChild);
+            }
+
+            this.render();
+            
+            const solver = new Solve(this.cloneCellList());
+
+            if (!solver.solveable()) {
                 cell.value = possibleValue;
                 i--;
             }
-        }
+        }        
+    }
+
+    cloneCellList() {
+        return this.cellList.map(row => row.map(oldCell => {
+            let cell = new Cell();
+            cell.value = oldCell.value.map(value => value);
+            return cell;
+        } ));
     }
 }
 
@@ -122,7 +137,7 @@ function generateSudoku(difflevel) {
         reloads++;
     }
     board.clearValues(difflevel);
-    board.render();
+    // board.render();
 
     // console.log(reloads);
 }
@@ -132,7 +147,7 @@ function generateSudoku(difflevel) {
 
 class SolveCell {
     constructor() {
-        this.value
+        this.value = [1,2,3,4,5,6,7,8,9];
     }
 
     eliminate(number) {
@@ -141,14 +156,11 @@ class SolveCell {
 }
 
 class Solve {
-    constructor(list=false) {
+    constructor(list = false) {
         this.sudokuWrapper = document.querySelector('.sudoku-wrapper');
         this.nodeValueList = this.sudokuWrapper.querySelectorAll('p');
-        if (list) {
-            this.cellList = list;
-        } else {
-            this.cellList = [];
-        }
+
+        this.cellList = list || [];
     }
 
     loadCells() {
@@ -160,8 +172,6 @@ class Solve {
 
                 if (this.nodeValueList[x].innerText) {
                     newCell.value = [this.nodeValueList[x].innerText];
-                } else {
-                    newCell.value = [1, 2, 3, 4, 5, 6, 7, 8, 9];
                 }
                 row.push(newCell);
                 x++;
@@ -170,7 +180,7 @@ class Solve {
         }
     }
 
-    render() { //skriv ut alla celler med 1 värde
+    render() { //skriv ut alla celler med 1 värde --- .flat();
         let x = 0;
         for (let row in this.cellList) {
             for (let col in this.cellList) {
@@ -187,7 +197,6 @@ class Solve {
             for (let col in this.cellList) {
                 let cell = this.cellList[row][col];
                 if (cell.value.length == 1) {
-                    this.render();
                     this.clearImpossibleValues();
                 } else {
                     this.crosscheck(cell, this.getRow(row));
@@ -196,6 +205,7 @@ class Solve {
                 }
             }
         }
+        // this.render();
     }
 
     clearImpossibleValues() {
@@ -239,7 +249,7 @@ class Solve {
 
     crosscheck(cell, list) {
         let values = [];
-        list.forEach(item => {
+        list.forEach(item => { //concat?
             if (item != cell) {
                 item.value.forEach(value => values.push(value));
             }
@@ -258,18 +268,25 @@ class Solve {
                 this.solve();
             }
         });
-        return true;
     }
 
     solveable() {
-        this.solved();
-        for (let row of this.cellList) {
-            for (let cell of row) {
-                if (cell.value.length != 1) {
-                    return false;
-                }
+        let list = this.cellList.flat();
+
+        for (let cell of list) {
+            if (!cell.value.length) {
+                cell.value = [1,2,3,4,5,6,7,8,9]; 
             }
         }
+
+        this.solved();
+
+        for (let cell of list) {
+            if (cell.value.length != 1) {
+                return false;
+            } 
+        }
+        return true;
     }
 }
 
@@ -292,7 +309,7 @@ function initGeneratorBtns() {
             activeLevel = levels[i];
             btnList.forEach(btn => btn.style.backgroundColor = 'white');
             btnList[i].style.backgroundColor = 'lightgrey';
-        })
+        });
     }
 
     const refreshBtn = document.querySelector('.refresh-btn');
@@ -308,6 +325,7 @@ function initSolveBtn() {
         let solveSudoku = new Solve;
         solveSudoku.loadCells();
         solveSudoku.solved();
+        solveSudoku.render();
     });
 }
 
