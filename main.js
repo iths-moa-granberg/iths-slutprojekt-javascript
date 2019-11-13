@@ -15,12 +15,9 @@ class Cell {
         newCellValue.innerText = this.value;
     }
 
-    setRandomValue() { //if this.value.length
-        let num = this.value.sort(function () { return .5 - Math.random() })[0];
-        if (num) {
-            this.value = [num];
-        } else {
-            this.value = [];
+    setRandomValue() {
+        if (this.value.length) {
+            this.value = [this.value.sort(function () { return .5 - Math.random() })[0]];
         }
     }
 
@@ -33,7 +30,7 @@ class Board {
     constructor() {
         this.cellList = [];
         this.generateCells();
-        this.setCellsValue();
+        this.setValues();
     }
 
     generateCells() { //this.cellList[radIndex][columnIndex]
@@ -46,7 +43,7 @@ class Board {
         }
     }
 
-    setCellsValue() {
+    setValues() {
         for (let row in this.cellList) {
             for (let col in this.cellList[row]) {
                 let cell = this.cellList[row][col];
@@ -58,7 +55,7 @@ class Board {
         }
     }
 
-    clearRow(row, number, skipCellIndex) {
+    clearRow(row, number, skipCellIndex) { //använd getRow() + clear() istället?
         for (let cellIndex in this.cellList[row]) {
             if (cellIndex != skipCellIndex) {
                 this.cellList[row][cellIndex].eliminate(number);
@@ -87,34 +84,28 @@ class Board {
     }
 
     render() {
-        for (let row in this.cellList) {
-            for (let col in this.cellList[row]) {
-                this.cellList[row][col].markup();
-            }
-        }
+        this.cellList.flat().forEach(cell => cell.markup());
     }
 
-    clearValues(difflevel) { //uppdatera så att bara sudokus med en möjlig lösning godkänns
+    clearValues(difflevel) { //optimize
         let clearedList = this.cellList.flat();
         for (let i = 0; i < difflevel; i++) {
-            let cell = clearedList.splice(Math.floor(Math.random() * clearedList.length), 1)[0];
+            let index = Math.floor(Math.random() * clearedList.length);
+            let cell = clearedList.splice(index, 1)[0];
+
             let possibleValue = cell.value;
             cell.value = [];
 
-            const sudokuWrapper = document.querySelector('.sudoku-wrapper');
-            while (sudokuWrapper.firstChild) {
-                sudokuWrapper.removeChild(sudokuWrapper.firstChild);
-            }
+            let divs = document.querySelectorAll('divs');
+            divs.forEach(div => div.remove());
 
-            this.render();
-            
             const solver = new Solve(this.cloneCellList());
-
             if (!solver.solveable()) {
                 cell.value = possibleValue;
+                clearedList.splice(index, 0, cell);
                 i--;
             }
-        }        
+        }
     }
 
     cloneCellList() {
@@ -122,23 +113,28 @@ class Board {
             let cell = new Cell();
             cell.value = oldCell.value.map(value => value);
             return cell;
-        } ));
+        }));
     }
 }
 
 function generateSudoku(difflevel) {
     let board = new Board();
-    let reloads = 0;
+    // let reloads = 0;
 
     while (board.cellList.flat().some(cell => !cell.value.length)) {
         let divs = document.querySelectorAll('div');
         divs.forEach(div => div.remove());
         board = new Board();
-        reloads++;
+        // reloads++;
     }
-    board.clearValues(difflevel);
-    // board.render();
 
+    console.log('generated full sudoku');
+    
+    board.clearValues(difflevel);
+
+    console.log('cleared values');
+    
+    board.render();    
     // console.log(reloads);
 }
 
@@ -147,7 +143,7 @@ function generateSudoku(difflevel) {
 
 class SolveCell {
     constructor() {
-        this.value = [1,2,3,4,5,6,7,8,9];
+        this.value = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     }
 
     eliminate(number) {
@@ -156,11 +152,10 @@ class SolveCell {
 }
 
 class Solve {
-    constructor(list = false) {
+    constructor(list = []) {
         this.sudokuWrapper = document.querySelector('.sudoku-wrapper');
         this.nodeValueList = this.sudokuWrapper.querySelectorAll('p');
-
-        this.cellList = list || [];
+        this.cellList = list;
     }
 
     loadCells() {
@@ -180,14 +175,11 @@ class Solve {
         }
     }
 
-    render() { //skriv ut alla celler med 1 värde --- .flat();
-        let x = 0;
-        for (let row in this.cellList) {
-            for (let col in this.cellList) {
-                if (this.cellList[row][col].value.length == 1) {
-                    this.nodeValueList[x].innerText = this.cellList[row][col].value;
-                }
-                x++;
+    render() {
+        let list = this.cellList.flat();
+        for (let i in list) {
+            if (list[i].value.length == 1) {
+                this.nodeValueList[i].innerText = list[i].value;
             }
         }
     }
@@ -205,7 +197,6 @@ class Solve {
                 }
             }
         }
-        // this.render();
     }
 
     clearImpossibleValues() {
@@ -249,9 +240,9 @@ class Solve {
 
     crosscheck(cell, list) {
         let values = [];
-        list.forEach(item => { //concat?
+        list.forEach(item => {
             if (item != cell) {
-                item.value.forEach(value => values.push(value));
+                values.concat(item.value);
             }
         });
         cell.value.forEach(value => {
@@ -275,7 +266,7 @@ class Solve {
 
         for (let cell of list) {
             if (!cell.value.length) {
-                cell.value = [1,2,3,4,5,6,7,8,9]; 
+                cell.value = [1, 2, 3, 4, 5, 6, 7, 8, 9];
             }
         }
 
@@ -284,7 +275,7 @@ class Solve {
         for (let cell of list) {
             if (cell.value.length != 1) {
                 return false;
-            } 
+            }
         }
         return true;
     }
@@ -295,13 +286,14 @@ class Solve {
 
 function initGeneratorBtns() {
     const btnList = document.querySelectorAll('.generate-btn');
-    const easy = 81 - 62;
-    const medium = 81 - 53;
-    const hard = 81 - 44;
-    const veryHard = 81 - 35;
-    const insane = 81 - 26;
-    let levels = [easy, medium, hard, veryHard, insane];
-    let activeLevel = levels[0];
+    const easy = 19; //62 ifyllda
+    const medium = 28; //53 ifyllda
+    const hard = 37; //44 ifyllda
+    const veryHard = 46; //35 ifyllda
+    const insane = 55; //26 ifyllda
+    const impossible = 64; //17 ifyllda
+    let levels = [easy, medium, hard, veryHard, insane, impossible];
+    let activeLevel = levels[3];
 
     for (let i = 0; i < btnList.length; i++) {
         btnList[i].addEventListener('click', (event) => {
