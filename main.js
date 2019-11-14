@@ -89,7 +89,7 @@ class Board {
 
     clearValues(difflevel) { //optimize
         let clearedList = this.cellList.flat();
-        for (let i = 0; i < difflevel; i++) {
+        for (let i = 0; i < difflevel; i++) {            
             let index = Math.floor(Math.random() * clearedList.length);
             let cell = clearedList.splice(index, 1)[0];
 
@@ -200,7 +200,7 @@ class Solve {
 
         for (let row in this.cellList) {
             if (row == 0 || row == 3 || row == 6) {
-                for (let col in row) {
+                for (let col in this.cellList) {
                     if (col == 0 || col == 3 || col == 6) {
                         this.boxcheck(row, col);
                     }
@@ -228,11 +228,17 @@ class Solve {
         });
     }
 
-    getRow(rowIndex) {
+    getRow(rowIndex, list = false) {
+        if (list) {
+            return list[rowIndex];
+        }
         return this.cellList[rowIndex];
     }
 
-    getColumn(colIndex) {
+    getColumn(colIndex, list = false) {
+        if (list) {
+            return list.map(row => row[colIndex]);
+        }
         return this.cellList.map(row => row[colIndex]);
     }
 
@@ -297,75 +303,52 @@ class Solve {
         })
     }
 
-    boxcheck(row, col) { //fixa: både row o col i samma, anropa 2ggr
+    getObjList(list) {
+        let newList = [];
+        for (let i in list) {
+            for (let cell of list[i]) {
+                let obj = {
+                    value: cell.value,
+                    index: i
+                }
+                newList.push(obj);
+            }
+        }
+        return newList;
+    }
+
+    boxcheck(row, col) {
         let boxList = this.getBox(row, col);
 
         let rows = this.reformatBoxcheckRow(boxList);
-        let rowObjs = [];
+        let rowObjs = this.getObjList(rows);
+        this.clearBoxcheck(rows, rowObjs, row, this.getRow);
 
-        for (let i in rows) { //skapar arr med obj med rowIndex o värde
-            for (let cell of rows[i]) {
-                let obj = {
-                    value: cell.value,
-                    rowIndex: i
-                }
-                rowObjs.push(obj);
-            }
-        }
+        let cols = this.reformatBoxcheckCol(boxList);
+        let colObjs = this.getObjList(cols);
+        this.clearBoxcheck(cols, colObjs, col, this.getColumn)
+    }
 
-        for (let i in rows) {
+    clearBoxcheck(refomateBoxList, objList, index, callback) {
+        for (let i in refomateBoxList) {
             let compareValues = [];
-            rowObjs.forEach(obj => { //skapar arr med jämförelsevärden
-                if (obj.rowIndex != i) {
+            objList.forEach(obj => {
+                if (obj.index != i) {
                     compareValues = compareValues.concat(obj.value);
                 }
             });
 
-            rowObjs.forEach(obj => { //kollar om värden finns bland jämförelsevärden
-                if (obj.rowIndex == i) {
+            objList.forEach(obj => {
+                if (obj.index == i) {
                     obj.value.forEach(value => {
                         if (!compareValues.includes(value)) {
-                            // console.log(value);
-                            // console.log(rows[i]);
-                            // console.log(this.getRow(Number(row) + Number(obj.rowIndex)));
-                            // console.log(this.cellList);
-                            // console.log(row, obj.rowIndex);
-                            // console.log('----------');
-                            this.clearList(this.getRow(Number(row) + Number(obj.rowIndex)), rows[i], value);
+                            this.clearList(callback(Number(index) + Number(obj.index), this.cellList), refomateBoxList[i], value);
                         }
                     });
                 }
             });
         }
     }
-
-    // listcheck(compareList, boxList) { //no
-    //     let activeCells = [];
-    //     let activeValues = [];
-    //     let compareValues = [];
-    //     for (let cell of boxList) {
-    //         for (let compareCell of compareList) {
-    //             if (cell == compareCell) {
-    //                 activeCells.push(cell);
-    //             } else {
-    //                 compareValues = compareValues.concat(compareCell.value);
-    //             }
-    //         }
-    //     }
-    //     for (let i = 0; i < activeCells.length - 1; i++) {
-    //         activeValues = activeCells[i].value.filter(value => activeCells[i + 1].value.includes(value));
-    //     }
-
-    //     activeValues.forEach(value => {
-    //         if (!compareValues.includes(value)) {
-    //             activeList.forEach(cell => {
-    //                 if (!activeCells.includes(cell)) {
-    //                     activeValues.forEach(value => cell.eliminate(value));
-    //                 }
-    //             });
-    //         }
-    //     });
-    // }
 
     solved() {
         let list = this.cellList.flat();
@@ -382,6 +365,7 @@ class Solve {
         for (let cell of list) {
             if (!cell.value.length) {
                 cell.value = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                //kolla igenom box, row, col, ta bort värde från aktiv cell om det finns
             }
         }
 
