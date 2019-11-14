@@ -129,12 +129,12 @@ function generateSudoku(difflevel) {
     }
 
     console.log('generated full sudoku');
-    
+
     board.clearValues(difflevel);
 
     console.log('cleared values');
-    
-    board.render();    
+
+    board.render();
     // console.log(reloads);
 }
 
@@ -197,18 +197,28 @@ class Solve {
                 }
             }
         }
+
+        for (let row in this.cellList) {
+            if (row == 0 || row == 3 || row == 6) {
+                for (let col in row) {
+                    if (col == 0 || col == 3 || col == 6) {
+                        this.boxcheck(row, col);
+                    }
+                }
+            }
+        }
     }
 
     clearImpossibleValues() {
         for (let row in this.cellList) {
             for (let col in this.cellList[row]) {
                 let cell = this.cellList[row][col];
-                this.clear(cell, row, col);
+                this.clearRowColBox(cell, row, col);
             }
         }
     }
 
-    clear(cell, rowIndex, colIndex) {
+    clearRowColBox(cell, rowIndex, colIndex) {
         let list = this.getRow(rowIndex).concat(this.getColumn(colIndex).concat(this.getBox(rowIndex, colIndex)));
 
         list.forEach(item => {
@@ -251,6 +261,111 @@ class Solve {
             }
         })
     }
+
+    reformatBoxcheckRow(boxList) { //[xxxyyyzzz] -> [[xxx][yyy][zzz]]
+        let newList = [];
+        let x = 0;
+        for (let i = 0; i < 3; i++) {
+            let row = [];
+            // newList.push(boxList.splice(0, 3));
+            for (let j = 0; j < 3; j++) {
+                row.push(boxList[x]);
+                x++;
+            }
+            newList.push(row);
+        }
+        return newList;
+    }
+
+    reformatBoxcheckCol(boxList) { //[xxxyyyzzz] -> [[xyz][xyz][xyz]]
+        let newList = [];
+        for (let i = 0; i < 3; i++) {
+            let col = [];
+            for (let j = 0; j < 3; j++) {
+                col.push(boxList[j * 3 + i]);
+            }
+            newList.push(col);
+        }
+        return newList;
+    }
+
+    clearList(list, skipCells, value) {
+        list.forEach(item => {
+            if (!skipCells.includes(item)) {
+                item.eliminate(value);
+            }
+        })
+    }
+
+    boxcheck(row, col) { //fixa: både row o col i samma, anropa 2ggr
+        let boxList = this.getBox(row, col);
+
+        let rows = this.reformatBoxcheckRow(boxList);
+        let rowObjs = [];
+
+        for (let i in rows) { //skapar arr med obj med rowIndex o värde
+            for (let cell of rows[i]) {
+                let obj = {
+                    value: cell.value,
+                    rowIndex: i
+                }
+                rowObjs.push(obj);
+            }
+        }
+
+        for (let i in rows) {
+            let compareValues = [];
+            rowObjs.forEach(obj => { //skapar arr med jämförelsevärden
+                if (obj.rowIndex != i) {
+                    compareValues = compareValues.concat(obj.value);
+                }
+            });
+
+            rowObjs.forEach(obj => { //kollar om värden finns bland jämförelsevärden
+                if (obj.rowIndex == i) {
+                    obj.value.forEach(value => {
+                        if (!compareValues.includes(value)) {
+                            // console.log(value);
+                            // console.log(rows[i]);
+                            // console.log(this.getRow(Number(row) + Number(obj.rowIndex)));
+                            // console.log(this.cellList);
+                            // console.log(row, obj.rowIndex);
+                            // console.log('----------');
+                            this.clearList(this.getRow(Number(row) + Number(obj.rowIndex)), rows[i], value);
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    // listcheck(compareList, boxList) { //no
+    //     let activeCells = [];
+    //     let activeValues = [];
+    //     let compareValues = [];
+    //     for (let cell of boxList) {
+    //         for (let compareCell of compareList) {
+    //             if (cell == compareCell) {
+    //                 activeCells.push(cell);
+    //             } else {
+    //                 compareValues = compareValues.concat(compareCell.value);
+    //             }
+    //         }
+    //     }
+    //     for (let i = 0; i < activeCells.length - 1; i++) {
+    //         activeValues = activeCells[i].value.filter(value => activeCells[i + 1].value.includes(value));
+    //     }
+
+    //     activeValues.forEach(value => {
+    //         if (!compareValues.includes(value)) {
+    //             activeList.forEach(cell => {
+    //                 if (!activeCells.includes(cell)) {
+    //                     activeValues.forEach(value => cell.eliminate(value));
+    //                 }
+    //             });
+    //         }
+    //     });
+    // }
 
     solved() {
         let list = this.cellList.flat();
