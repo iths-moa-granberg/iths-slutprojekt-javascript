@@ -89,7 +89,7 @@ class Board {
 
     clearValues(difflevel) { //optimize
         let clearedList = this.cellList.flat();
-        for (let i = 0; i < difflevel; i++) {            
+        for (let i = 0; i < difflevel; i++) {
             let index = Math.floor(Math.random() * clearedList.length);
             let cell = clearedList.splice(index, 1)[0];
 
@@ -102,10 +102,11 @@ class Board {
             const solver = new Solve(this.cloneCellList());
             if (!solver.solveable()) {
                 cell.value = possibleValue;
-                clearedList.splice(index, 0, cell);
                 i--;
             }
         }
+        const solver = new Solve(this.cloneCellList());
+        console.log(solver.solveable())
     }
 
     cloneCellList() {
@@ -166,7 +167,7 @@ class Solve {
                 let newCell = new SolveCell;
 
                 if (this.nodeValueList[x].innerText) {
-                    newCell.value = [this.nodeValueList[x].innerText];
+                    newCell.value = [Number(this.nodeValueList[x].innerText)];
                 }
                 row.push(newCell);
                 x++;
@@ -359,16 +360,45 @@ class Solve {
         });
     }
 
+    clearSelf(cell, row, col) {
+        let list = this.getRow(row).concat(this.getColumn(col)).concat(this.getBox(row, col));
+        let compareList = [];
+        
+        list.forEach(compareCell => {
+            if (compareCell != cell && compareCell.value.length == 1 && !compareList.includes(compareCell.value[0])) {
+                compareList.push(compareCell.value[0]);
+            }
+        });
+
+        for (let value of cell.value) {
+            if (compareList.includes(value)) {
+                cell.eliminate(value);
+            }
+            if (cell.value.length < 2) { break }
+        }
+    }
+
+    allCellsClearSelf() {
+        for (let row in this.cellList) {
+            for (let col in this.cellList[row]) {
+                let cell = this.cellList[row][col];
+                if (cell.value.length != 1) {
+                    this.clearSelf(cell, row, col);
+                }
+            }
+        }
+    }
+
     solveable() {
         let list = this.cellList.flat();
 
         for (let cell of list) {
             if (!cell.value.length) {
-                cell.value = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                //kolla igenom box, row, col, ta bort värde från aktiv cell om det finns
+                cell.value = [1,2,3,4,5,6,7,8,9];
             }
         }
 
+        this.allCellsClearSelf();
         this.solved();
 
         for (let cell of list) {
@@ -415,6 +445,7 @@ function initSolveBtn() {
     solveBtn.addEventListener('click', (event) => {
         let solveSudoku = new Solve;
         solveSudoku.loadCells();
+        solveSudoku.allCellsClearSelf();
         solveSudoku.solved();
         solveSudoku.render();
     });
