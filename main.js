@@ -87,7 +87,7 @@ class Board {
         this.cellList.flat().forEach(cell => cell.markup());
     }
 
-    clearValues(difflevel) { //optimize
+    clearValues(difflevel) { //optimize -- if clearedList.lenght == 0, restart
         let clearedList = this.cellList.flat();
         for (let i = 0; i < difflevel; i++) {
             let index = Math.floor(Math.random() * clearedList.length);
@@ -105,8 +105,6 @@ class Board {
                 i--;
             }
         }
-        const solver = new Solve(this.cloneCellList());
-        console.log(solver.solveable())
     }
 
     cloneCellList() {
@@ -157,6 +155,7 @@ class Solve {
         this.sudokuWrapper = document.querySelector('.sudoku-wrapper');
         this.nodeValueList = this.sudokuWrapper.querySelectorAll('p');
         this.cellList = list;
+        this.clearGrid();
     }
 
     loadCells() {
@@ -363,7 +362,7 @@ class Solve {
     clearSelf(cell, row, col) {
         let list = this.getRow(row).concat(this.getColumn(col)).concat(this.getBox(row, col));
         let compareList = [];
-        
+
         list.forEach(compareCell => {
             if (compareCell != cell && compareCell.value.length == 1 && !compareList.includes(compareCell.value[0])) {
                 compareList.push(compareCell.value[0]);
@@ -394,7 +393,7 @@ class Solve {
 
         for (let cell of list) {
             if (!cell.value.length) {
-                cell.value = [1,2,3,4,5,6,7,8,9];
+                cell.value = [1, 2, 3, 4, 5, 6, 7, 8, 9];
             }
         }
 
@@ -407,6 +406,112 @@ class Solve {
             }
         }
         return true;
+    }
+
+    clearGrid() {
+        let inputs = document.querySelectorAll('input');
+        inputs.forEach(input => input.remove());
+    }
+}
+
+
+//MANUAL SOLVE
+
+class ManualSolve {
+    constructor() {
+        this.valueList = [];
+        this.numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        this.loadCells();
+    }
+
+    loadCells() {
+        const sudokuWrapper = document.querySelector('.sudoku-wrapper');
+        const nodeList = sudokuWrapper.querySelectorAll('div');
+
+        let x = 0;
+        for (let row = 0; row < 9; row++) {
+            let rowArr = [];
+            for (let col = 0; col < 9; col++) {
+                if (nodeList[x].innerText) {
+                    let cell = {
+                        value: nodeList[x].innerText,
+                        rowIndex: row,
+                        colIndex: col
+                    }
+                    rowArr.push(cell);
+                } else {
+                    let cell = {
+                        value: '',
+                        rowIndex: row,
+                        colIndex: col
+                    }
+                    rowArr.push(cell);
+
+                    let input = document.createElement('input');
+                    input.setAttribute('type', 'number');
+                    nodeList[x].appendChild(input);
+
+                    this.addListeners(input, cell);
+                }
+                x++;
+            }
+            this.valueList.push(rowArr);
+        }        
+    }
+
+    addListeners(input, cell) {
+        input.addEventListener('keydown', e => {
+            if (input.value.length >= 1) {
+                input.value = '';
+            }
+        });
+
+        input.addEventListener('keyup', e => {
+            if (!this.numbers.includes(Number(input.value))) {
+                input.value = '';
+                input.classList.remove('incorrect');
+            } else {
+                cell.value = input.value;
+                if (this.checkIfCorrect(cell, input)) {
+                    input.classList.remove('incorrect');
+                } else {
+                    input.classList.add('incorrect');
+                }
+            }
+        });        
+    }
+
+    checkIfCorrect(cell) {        
+        let list = this.getRow(cell.rowIndex)
+            .concat(this.getColumn(cell.colIndex))
+            .concat(this.getBox(cell.rowIndex, cell.colIndex));
+
+        for (let item of list) {
+            if (cell != item && cell.value == item.value) {                               
+                return false;
+            }
+        }                
+        return true;
+    }
+
+    getRow(rowIndex) {
+        return this.valueList[rowIndex];
+    }
+
+    getColumn(colIndex) {
+        return this.valueList.map(row => row[colIndex]);
+    }
+
+    getBox(rowIndex, colIndex) {
+        let finalList = [];
+        let startRowIndex = Math.floor(rowIndex / 3) * 3;
+        let startColIndex = Math.floor(colIndex / 3) * 3;
+        let newList = this.valueList.filter((row, index) => index >= startRowIndex && index < startRowIndex + 3);
+        newList.forEach(row => {
+            let newRow = row.filter((cell, index) => index >= startColIndex && index < startColIndex + 3);
+            finalList.push(newRow);
+        });
+        return finalList.flat();
     }
 }
 
@@ -451,5 +556,10 @@ function initSolveBtn() {
     });
 }
 
+function initManualSolve() {
+    new ManualSolve;
+}
+
 initGeneratorBtns();
 initSolveBtn();
+initManualSolve();
