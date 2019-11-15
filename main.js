@@ -118,23 +118,18 @@ class Board {
 
 function generateSudoku(difflevel) {
     let board = new Board();
-    // let reloads = 0;
 
     while (board.cellList.flat().some(cell => !cell.value.length)) {
         let divs = document.querySelectorAll('div');
         divs.forEach(div => div.remove());
         board = new Board();
-        // reloads++;
     }
 
-    console.log('generated full sudoku');
-
     board.clearValues(difflevel);
-
-    console.log('cleared values');
-
     board.render();
-    // console.log(reloads);
+
+    initManualSolve();
+    watch = new Stopwatch;
 }
 
 
@@ -417,11 +412,23 @@ class Solve {
 
 //MANUAL SOLVE
 
+class ManualSolveCell {
+    constructor(value, row, col) {
+        this.value = value;
+        this.rowIndex = row;
+        this.colIndex = col;
+    }
+
+    eliminate(number) {
+        this.value = this.value.filter(num => num != number);
+    }
+}
+
 class ManualSolve {
     constructor() {
         this.sudokuWrapper = document.querySelector('.sudoku-wrapper');
         this.nodeList = this.sudokuWrapper.querySelectorAll('div');
-        this.valueList = [];
+        this.cellList = [];
         this.numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         this.loadCells();
         this.initBtns();
@@ -433,18 +440,10 @@ class ManualSolve {
             let rowArr = [];
             for (let col = 0; col < 9; col++) {
                 if (this.nodeList[x].innerText) {
-                    let cell = {
-                        value: this.nodeList[x].innerText,
-                        rowIndex: row,
-                        colIndex: col
-                    }
+                    let cell = new ManualSolveCell([this.nodeList[x].innerText], row, col);
                     rowArr.push(cell);
                 } else {
-                    let cell = {
-                        value: '',
-                        rowIndex: row,
-                        colIndex: col
-                    }
+                    let cell = new ManualSolveCell([], row, col);
                     rowArr.push(cell);
 
                     let input = document.createElement('input');
@@ -455,7 +454,7 @@ class ManualSolve {
                 }
                 x++;
             }
-            this.valueList.push(rowArr);
+            this.cellList.push(rowArr);
         }
     }
 
@@ -469,22 +468,27 @@ class ManualSolve {
         input.addEventListener('keyup', e => {
             if (!this.numbers.includes(Number(input.value))) {
                 input.value = '';
+                input.classList.remove('incorrect');
             } else {
-                cell.value = input.value;
-                if (!this.checkIfCorrect(cell, input) && this.displayIncorrect) {
+                cell.value[0] = input.value;
+                if (!this.checkIfCorrectCell(cell, input) && this.displayIncorrect) {
                     input.classList.add('incorrect');
+                } else {
+                    input.classList.remove('incorrect');
+                    this.renderCorrectness();
+                    this.checkIfDone();
                 }
             }
         });
     }
 
-    checkIfCorrect(cell) {
+    checkIfCorrectCell(cell) {
         let list = this.getRow(cell.rowIndex)
             .concat(this.getColumn(cell.colIndex))
             .concat(this.getBox(cell.rowIndex, cell.colIndex));
 
         for (let item of list) {
-            if (cell != item && cell.value == item.value) {
+            if (cell != item && cell.value[0] == item.value[0]) {
                 return false;
             }
         }
@@ -496,10 +500,10 @@ class ManualSolve {
             const incorrects = this.sudokuWrapper.querySelectorAll('.incorrect');
             incorrects.forEach(node => node.classList.remove('incorrect'));
         } else {
-            let list = this.valueList.flat();
+            let list = this.cellList.flat();
             for (let i in list) {
-                if (list[i].value) {
-                    if (!this.checkIfCorrect(list[i]) && this.nodeList[i].querySelector('input')) {
+                if (list[i].value.length) {
+                    if (!this.checkIfCorrectCell(list[i]) && this.nodeList[i].querySelector('input')) {
                         let input = this.nodeList[i].querySelector('input');
                         input.classList.add('incorrect');
                     }
@@ -509,18 +513,18 @@ class ManualSolve {
     }
 
     getRow(rowIndex) {
-        return this.valueList[rowIndex];
+        return this.cellList[rowIndex];
     }
 
     getColumn(colIndex) {
-        return this.valueList.map(row => row[colIndex]);
+        return this.cellList.map(row => row[colIndex]);
     }
 
     getBox(rowIndex, colIndex) {
         let finalList = [];
         let startRowIndex = Math.floor(rowIndex / 3) * 3;
         let startColIndex = Math.floor(colIndex / 3) * 3;
-        let newList = this.valueList.filter((row, index) => index >= startRowIndex && index < startRowIndex + 3);
+        let newList = this.cellList.filter((row, index) => index >= startRowIndex && index < startRowIndex + 3);
         newList.forEach(row => {
             let newRow = row.filter((cell, index) => index >= startColIndex && index < startColIndex + 3);
             finalList.push(newRow);
@@ -533,7 +537,7 @@ class ManualSolve {
             let input = this.nodeList[i].querySelector('input');
             if (input) {
                 input.value = '';
-                this.valueList.flat()[i].value = '';
+                this.cellList.flat()[i].value = [];
             }
         }
     }
@@ -541,17 +545,57 @@ class ManualSolve {
     initBtns() {
         this.displayIncorrect = false;
         const displayIncorrectBtn = document.querySelector('.display-incorrect-btn');
-
         displayIncorrectBtn.addEventListener('change', event => {
             this.displayIncorrect = !this.displayIncorrect;
             this.renderCorrectness();
         });
 
         const clearBtn = document.querySelector('.clear-btn');
-
         clearBtn.addEventListener('click', event => {
             this.clear();
         });
+    }
+
+    checkIfDone() {
+        let list = this.cellList.flat();
+        for (let cell of list) {
+            if (cell.value.length == 1) {
+            } else {
+                return false;
+            }
+        };
+        this.checkIfCorrect();
+    }
+
+    checkIfCorrect() {
+        const solver = new Solve(this.cloneCellList());
+        if (solver.solveable()) {
+            document.body.innerHTML += this.renderWin(watch.endTime());
+            clearInterval(timer);
+
+            const reloadBtn = document.querySelector('.reload-btn');
+            reloadBtn.addEventListener('click', event => {
+                location.reload();
+            });
+        }
+    }
+
+    renderWin(time) {
+        return `
+        <section class="win">
+        <h1>You win</h1>
+        <p>Time it took: ${time}</p>
+        <button class="reload-btn">Go again</button>
+        </section>
+        `
+    }
+
+    cloneCellList() {
+        return this.cellList.map(row => row.map(oldCell => {
+            let cell = new Cell();
+            cell.value = oldCell.value.map(value => value);
+            return cell;
+        }));
     }
 }
 
@@ -567,7 +611,7 @@ function initGeneratorBtns() {
     const insane = 55; //26 ifyllda
     const impossible = 64; //17 ifyllda
     let levels = [easy, medium, hard, veryHard, insane, impossible];
-    let activeLevel = levels[3];
+    let activeLevel = levels[0];
 
     for (let i = 0; i < btnList.length; i++) {
         btnList[i].addEventListener('click', (event) => {
@@ -581,7 +625,7 @@ function initGeneratorBtns() {
     const refreshBtn = document.querySelector('.refresh-btn');
     refreshBtn.addEventListener('click', (event) => generateSudoku(activeLevel));
 
-    generateSudoku(veryHard);
+    generateSudoku(easy);
 }
 
 function initSolveBtn() {
@@ -600,6 +644,44 @@ function initManualSolve() {
     new ManualSolve;
 }
 
+function initTimerBtn() {
+    const counterWrapper = document.querySelector('.counter');
+    const displayTimerBtn = document.querySelector('.display-timer-btn');
+    displayTimerBtn.addEventListener('click', event => {
+        counterWrapper.classList.toggle('hidden');
+    });
+}
+
+class Stopwatch {
+    constructor() {
+        this.counterWrapper = document.querySelector('.counter');
+        this.min = 0;
+        this.sec = 0;
+        this.start = new Date();
+    }
+
+    updateTime() {
+        let now = new Date();
+        const timerP = this.counterWrapper.querySelector('p');
+        timerP.innerText = this.msecToMinAndSec(now.getTime() - this.start.getTime());
+    }
+
+    msecToMinAndSec(msec) {
+        let sec = Math.floor((msec / 1000) % 60);
+        let min = Math.floor((msec / (1000 * 60)) % 60);
+
+        min = (min < 10) ? '0' + min : min;
+        sec = (sec < 10) ? '0' + sec : sec;
+        return min + ':' + sec;
+    }
+
+    endTime() {
+        let now = new Date();
+        return this.msecToMinAndSec(now.getTime() - this.start.getTime());
+    }
+}
+
 initGeneratorBtns();
 initSolveBtn();
-initManualSolve();
+initTimerBtn();
+timer = setInterval(function () { watch.updateTime(); }, 1000);

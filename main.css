@@ -2,6 +2,7 @@ body {
     margin: 0;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 
@@ -110,4 +111,31 @@ input::-webkit-outer-spin-button {
 .settings-wrapper p {
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     font-size: 11px;
+}
+
+.win {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.counter {
+    width: 500px;
+    margin: auto;
+    text-align: right;
+}
+
+.counter p {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.hidden {
+    display: none;
 }
