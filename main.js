@@ -503,7 +503,7 @@ class ManualSolve {
                         let input = this.nodeList[i].querySelector('input');
                         input.classList.add('incorrect');
                     }
-                } 
+                }
             }
         }
     }
@@ -528,6 +528,16 @@ class ManualSolve {
         return finalList.flat();
     }
 
+    clear() {
+        for (let i = 0; i < this.nodeList.length; i++) {
+            let input = this.nodeList[i].querySelector('input');
+            if (input) {
+                input.value = '';
+                this.valueList.flat()[i].value = '';
+            }
+        }
+    }
+
     initBtns() {
         this.displayIncorrect = false;
         const displayIncorrectBtn = document.querySelector('.display-incorrect-btn');
@@ -535,6 +545,12 @@ class ManualSolve {
         displayIncorrectBtn.addEventListener('change', event => {
             this.displayIncorrect = !this.displayIncorrect;
             this.renderCorrectness();
+        });
+
+        const clearBtn = document.querySelector('.clear-btn');
+
+        clearBtn.addEventListener('click', event => {
+            this.clear();
         });
     }
 }

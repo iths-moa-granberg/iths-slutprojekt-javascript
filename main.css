@@ -23,10 +23,16 @@ button:hover {
     margin-left: 6rem;
 }
 
-.solve-btn {
-    margin-top: 1rem;
+.solve-btns-wrapper {
+    width: 500px;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.solve-btn, .clear-btn {
+    margin: 1rem 1rem 0 1rem;
     width: 3rem;
-    align-self: center;
 }
 
 button:focus {
