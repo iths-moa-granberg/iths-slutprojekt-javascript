@@ -409,7 +409,7 @@ class Solve {
     }
 
     clearGrid() {
-        let inputs = document.querySelectorAll('input');
+        let inputs = this.sudokuWrapper.querySelectorAll('input');
         inputs.forEach(input => input.remove());
     }
 }
@@ -419,22 +419,22 @@ class Solve {
 
 class ManualSolve {
     constructor() {
+        this.sudokuWrapper = document.querySelector('.sudoku-wrapper');
+        this.nodeList = this.sudokuWrapper.querySelectorAll('div');
         this.valueList = [];
         this.numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         this.loadCells();
+        this.initBtns();
     }
 
     loadCells() {
-        const sudokuWrapper = document.querySelector('.sudoku-wrapper');
-        const nodeList = sudokuWrapper.querySelectorAll('div');
-
         let x = 0;
         for (let row = 0; row < 9; row++) {
             let rowArr = [];
             for (let col = 0; col < 9; col++) {
-                if (nodeList[x].innerText) {
+                if (this.nodeList[x].innerText) {
                     let cell = {
-                        value: nodeList[x].innerText,
+                        value: this.nodeList[x].innerText,
                         rowIndex: row,
                         colIndex: col
                     }
@@ -449,14 +449,14 @@ class ManualSolve {
 
                     let input = document.createElement('input');
                     input.setAttribute('type', 'number');
-                    nodeList[x].appendChild(input);
+                    this.nodeList[x].appendChild(input);
 
                     this.addListeners(input, cell);
                 }
                 x++;
             }
             this.valueList.push(rowArr);
-        }        
+        }
     }
 
     addListeners(input, cell) {
@@ -469,29 +469,43 @@ class ManualSolve {
         input.addEventListener('keyup', e => {
             if (!this.numbers.includes(Number(input.value))) {
                 input.value = '';
-                input.classList.remove('incorrect');
             } else {
                 cell.value = input.value;
-                if (this.checkIfCorrect(cell, input)) {
-                    input.classList.remove('incorrect');
-                } else {
+                if (!this.checkIfCorrect(cell, input) && this.displayIncorrect) {
                     input.classList.add('incorrect');
                 }
             }
-        });        
+        });
     }
 
-    checkIfCorrect(cell) {        
+    checkIfCorrect(cell) {
         let list = this.getRow(cell.rowIndex)
             .concat(this.getColumn(cell.colIndex))
             .concat(this.getBox(cell.rowIndex, cell.colIndex));
 
         for (let item of list) {
-            if (cell != item && cell.value == item.value) {                               
+            if (cell != item && cell.value == item.value) {
                 return false;
             }
-        }                
+        }
         return true;
+    }
+
+    renderCorrectness() {
+        if (!this.displayIncorrect) {
+            const incorrects = this.sudokuWrapper.querySelectorAll('.incorrect');
+            incorrects.forEach(node => node.classList.remove('incorrect'));
+        } else {
+            let list = this.valueList.flat();
+            for (let i in list) {
+                if (list[i].value) {
+                    if (!this.checkIfCorrect(list[i]) && this.nodeList[i].querySelector('input')) {
+                        let input = this.nodeList[i].querySelector('input');
+                        input.classList.add('incorrect');
+                    }
+                } 
+            }
+        }
     }
 
     getRow(rowIndex) {
@@ -512,6 +526,16 @@ class ManualSolve {
             finalList.push(newRow);
         });
         return finalList.flat();
+    }
+
+    initBtns() {
+        this.displayIncorrect = false;
+        const displayIncorrectBtn = document.querySelector('.display-incorrect-btn');
+
+        displayIncorrectBtn.addEventListener('change', event => {
+            this.displayIncorrect = !this.displayIncorrect;
+            this.renderCorrectness();
+        });
     }
 }
 

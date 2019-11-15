@@ -2,7 +2,6 @@ body {
     margin: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
 }
 
 
@@ -25,8 +24,9 @@ button:hover {
 }
 
 .solve-btn {
-    margin: 1rem;
+    margin-top: 1rem;
     width: 3rem;
+    align-self: center;
 }
 
 button:focus {
@@ -83,4 +83,25 @@ input::-webkit-outer-spin-button {
 
 .incorrect {
     color: red;
+}
+
+
+.settings-wrapper {
+    width: 500px;
+    margin: auto;
+}
+
+.settings-wrapper article {
+    display: flex;
+    align-items: center;
+}
+
+.settings-wrapper input {
+    width: 15px;
+    height: 15px;
+}
+
+.settings-wrapper p {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 11px;
 }
