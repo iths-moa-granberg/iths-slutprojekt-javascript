@@ -87,7 +87,7 @@ class Board {
         this.cellList.flat().forEach(cell => cell.markup());
     }
 
-    clearValues(difflevel) { //optimize -- if clearedList.lenght == 0, restart
+    clearValues(difflevel) { //optimize
         let clearedList = this.cellList.flat();
         for (let i = 0; i < difflevel; i++) {
             let index = Math.floor(Math.random() * clearedList.length);
@@ -637,6 +637,7 @@ function initSolveBtn() {
         solveSudoku.allCellsClearSelf();
         solveSudoku.solved();
         solveSudoku.render();
+        clearInterval(timer);
     });
 }
 
